@@ -1,0 +1,10 @@
+{
+    "name": "telegram",
+    "version": "1.0.0",
+    "type": "module",
+    "license": "ISC",
+    "packageManager": "pnpm@10.14.0",
+    "dependencies": {
+        "@netlify/functions": "4.2.5"
+    }
+}

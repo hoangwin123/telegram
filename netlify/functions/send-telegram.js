@@ -1,4 +1,5 @@
-import config from 'netlify/functions/config';
+const TELEGRAM_TOKEN = '8373103187:AAHADLa3tmFmoSx5txqa5yx0nAt7GEd0iPw';
+const TARGET_CHAT_ID = '-1002938976171';
 
 export default async (req) => {
     const { method } = req;
@@ -25,7 +26,9 @@ export default async (req) => {
                 status: 405,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
                 }
             }
         );
@@ -44,17 +47,17 @@ export default async (req) => {
                     status: 400,
                     headers: {
                         'Content-Type': 'application/json',
-                        'Access-Control-Allow-Origin': '*'
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
                     }
                 }
             );
         }
 
-        const targetChatId = config.chat_id;
-
         const telegramResponse = await sendMessage({
-            token: config.token,
-            chatId: targetChatId,
+            token: TELEGRAM_TOKEN,
+            chatId: TARGET_CHAT_ID,
             message,
             parseMode
         });
@@ -70,7 +73,9 @@ export default async (req) => {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
                 }
             }
         );
@@ -85,7 +90,9 @@ export default async (req) => {
                 status: 500,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
                 }
             }
         );
