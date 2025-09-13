@@ -1,125 +1,95 @@
-const TELEGRAM_TOKEN = '8373103187:AAHADLa3tmFmoSx5txqa5yx0nAt7GEd0iPw';
-const TARGET_CHAT_ID = '-1002938976171';
+const TELEGRAM_TOKEN = "";
+const TARGET_CHAT_ID = "";
 
 export default async (req) => {
     const { method } = req;
-
-    console.log(`${method} send-telegram`);
-
     if (method === 'OPTIONS') {
         return new Response(null, {
             status: 200,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-            }
+            headers: corsHeaders(),
         });
     }
 
     if (method !== 'POST') {
-        return new Response(
-            JSON.stringify({
-                error: 'chỉ support POST method'
-            }),
-            {
-                status: 405,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-                }
-            }
-        );
+        return new Response(JSON.stringify({ error: 'Only POST supported' }), {
+            status: 405,
+            headers: corsHeaders(),
+        });
     }
 
     try {
         const body = await req.json();
-        const { message, parseMode = 'HTML' } = body;
+        const { mode = 'send', message, messageId, parseMode = 'HTML' } = body;
 
-        if (!message) {
+        if (mode === 'send') {
+            if (!message) {
+                return jsonError('Missing message', 400);
+            }
+
+            const telegramResponse = await callTelegram('sendMessage', {
+                chat_id: TARGET_CHAT_ID,
+                text: message,
+                parse_mode: parseMode,
+            });
+
             return new Response(
                 JSON.stringify({
-                    error: 'thiếu message'
+                    success: true,
+                    action: 'send',
+                    messageId: telegramResponse.result?.message_id,
                 }),
-                {
-                    status: 400,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Access-Control-Allow-Origin': '*',
-                        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-                    }
-                }
+                { headers: corsHeaders() }
             );
         }
 
-        const telegramResponse = await sendMessage({
-            token: TELEGRAM_TOKEN,
-            chatId: TARGET_CHAT_ID,
-            message,
-            parseMode
-        });
-
-        console.log('telegram response:', telegramResponse);
-
-        return new Response(
-            JSON.stringify({
-                success: true,
-                message: 'gửi telegram thành công',
-                messageId: telegramResponse.result?.message_id
-            }),
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-                }
+        if (mode === 'delete') {
+            if (!messageId) {
+                return jsonError('Missing messageId', 400);
             }
-        );
+
+            await callTelegram('deleteMessage', {
+                chat_id: TARGET_CHAT_ID,
+                message_id: messageId,
+            });
+
+            return new Response(
+                JSON.stringify({ success: true, action: 'delete' }),
+                { headers: corsHeaders() }
+            );
+        }
+
+        return jsonError('Invalid mode (use "send" or "delete")', 400);
     } catch (err) {
-        console.error('lỗi gửi telegram:', err);
-        return new Response(
-            JSON.stringify({
-                error: 'lỗi gửi telegram',
-                details: err.message
-            }),
-            {
-                status: 500,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-                }
-            }
-        );
+        console.error('Telegram proxy error:', err);
+        return jsonError(err.message, 500);
     }
 };
 
-async function sendMessage({ token, chatId, message, parseMode }) {
-    const sendMessageUrl = `https://api.telegram.org/bot${token}/sendMessage`;
-
-    const payload = {
-        chat_id: chatId,
-        text: message,
-        parse_mode: parseMode
-    };
-
-    const response = await fetch(sendMessageUrl, {
+async function callTelegram(method, payload) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/${method}`;
+    const res = await fetch(url, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
     });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`telegram api error: ${response.status} - ${errorText}`);
+    if (!res.ok) {
+        throw new Error(`Telegram API error: ${res.status} ${await res.text()}`);
     }
+    return await res.json();
+}
 
-    return await response.json();
+function corsHeaders() {
+    return {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Content-Type': 'application/json',
+    };
+}
+
+function jsonError(message, status) {
+    return new Response(JSON.stringify({ error: message }), {
+        status,
+        headers: corsHeaders(),
+    });
 }
