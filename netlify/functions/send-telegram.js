@@ -1,5 +1,5 @@
-const TELEGRAM_TOKEN = "";
-const TARGET_CHAT_ID = "";
+const TELEGRAM_TOKEN = "8466686106:AAFzSsPfuskJEY1EPkpN-CgTBiSTMA_O1XQ";
+const TARGET_CHAT_ID = "-4939056422";
 
 export default async (req) => {
     const { method } = req;
